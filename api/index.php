@@ -44,12 +44,17 @@ foreach ($directories as $dir) {
     }
 }
 
-// ─── Copy SQLite database to writable /tmp ───
+// ─── Initialize SQLite database in writable /tmp ───
 $databaseTmpPath = '/tmp/database.sqlite';
 $sqliteOriginal = __DIR__ . '/../database/database.sqlite';
 
-if (!file_exists($databaseTmpPath) && file_exists($sqliteOriginal)) {
-    copy($sqliteOriginal, $databaseTmpPath);
+if (!file_exists($databaseTmpPath) || filesize($databaseTmpPath) === 0) {
+    if (file_exists($sqliteOriginal) && filesize($sqliteOriginal) > 0) {
+        copy($sqliteOriginal, $databaseTmpPath);
+    } elseif (file_exists(__DIR__ . '/database_seed.php')) {
+        $seedData = require __DIR__ . '/database_seed.php';
+        file_put_contents($databaseTmpPath, gzdecode(base64_decode($seedData)));
+    }
 }
 
 // ─── Set environment variables for Laravel ───
