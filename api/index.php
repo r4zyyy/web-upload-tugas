@@ -112,5 +112,32 @@ putenv("SESSION_DRIVER=file");
 $_ENV['SESSION_DRIVER'] = 'file';
 $_SERVER['SESSION_DRIVER'] = 'file';
 
+// ─── Set ALL driver defaults (since .env is not on Vercel) ───
+$defaults = [
+    'APP_NAME'              => 'Pengembangan Aplikasi Web',
+    'APP_ENV'               => 'production',
+    'APP_URL'               => $_ENV['APP_URL'] ?? 'https://web-upload-tugas.vercel.app',
+    'CACHE_STORE'           => 'file',
+    'QUEUE_CONNECTION'      => 'sync',
+    'BROADCAST_CONNECTION'  => 'log',
+    'FILESYSTEM_DISK'       => 'local',
+    'MAIL_MAILER'           => 'log',
+    'LOG_CHANNEL'           => 'single',
+    'LOG_LEVEL'             => 'debug',
+    'SESSION_LIFETIME'      => '120',
+    'SESSION_ENCRYPT'       => 'false',
+    'SESSION_PATH'          => '/',
+    'SESSION_DOMAIN'        => '',
+];
+
+foreach ($defaults as $key => $value) {
+    if (empty($_ENV[$key]) && empty(getenv($key))) {
+        putenv("{$key}={$value}");
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+    }
+}
+
 // ─── Load Laravel ───
 require __DIR__ . '/../public/index.php';
+
