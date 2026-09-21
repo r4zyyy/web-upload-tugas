@@ -1,5 +1,10 @@
 <?php
 
+// Force error display so blank white screen never happens on Vercel
+ini_set('display_errors', '1');
+ini_set('display_startup_errors', '1');
+error_reporting(E_ALL);
+
 // Prepare writable storage directory in /tmp for Vercel Serverless environment
 $storagePath = '/tmp/storage';
 $viewCompiledPath = $storagePath . '/framework/views';
@@ -34,9 +39,23 @@ putenv("VIEW_COMPILED_PATH={$viewCompiledPath}");
 $_ENV['VIEW_COMPILED_PATH'] = $viewCompiledPath;
 $_SERVER['VIEW_COMPILED_PATH'] = $viewCompiledPath;
 
-// If DB_CONNECTION is not set or set to infinityfree host which fails, default to bundled SQLite
+// Force APP_DEBUG=true for troubleshooting
+putenv("APP_DEBUG=true");
+$_ENV['APP_DEBUG'] = 'true';
+$_SERVER['APP_DEBUG'] = 'true';
+
+// Fallback APP_KEY if missing in environment variables
+$currentAppKey = $_ENV['APP_KEY'] ?? getenv('APP_KEY');
+if (empty($currentAppKey)) {
+    $defaultKey = 'base64:n+5Zn+lWscc86aiTyMSeDHKzG6dEebWrSpIx5Z3iXfo=';
+    putenv("APP_KEY={$defaultKey}");
+    $_ENV['APP_KEY'] = $defaultKey;
+    $_SERVER['APP_KEY'] = $defaultKey;
+}
+
+// Force SQLite connection fallback if DB_HOST is invalid or infinityfree
 $dbHost = $_ENV['DB_HOST'] ?? getenv('DB_HOST');
-if (empty($_ENV['DB_CONNECTION']) || $_ENV['DB_CONNECTION'] === 'sqlite' || str_contains($dbHost, 'infinityfree')) {
+if (empty($_ENV['DB_CONNECTION']) || $_ENV['DB_CONNECTION'] === 'sqlite' || str_contains((string)$dbHost, 'infinityfree')) {
     putenv("DB_CONNECTION=sqlite");
     $_ENV['DB_CONNECTION'] = 'sqlite';
     $_SERVER['DB_CONNECTION'] = 'sqlite';
