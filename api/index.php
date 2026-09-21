@@ -5,6 +5,11 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
+// Remove stale local cached service/package files that reference dev-only packages
+@unlink(__DIR__ . '/../bootstrap/cache/services.php');
+@unlink(__DIR__ . '/../bootstrap/cache/packages.php');
+@unlink(__DIR__ . '/../bootstrap/cache/config.php');
+
 // Fix Vercel Serverless SCRIPT_NAME & REQUEST_URI routing
 $_SERVER['SCRIPT_NAME'] = '/index.php';
 $_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/../public/index.php';
