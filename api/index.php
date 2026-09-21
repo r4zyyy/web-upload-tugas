@@ -117,6 +117,8 @@ $defaults = [
     'APP_NAME'              => 'Pengembangan Aplikasi Web',
     'APP_ENV'               => 'production',
     'APP_URL'               => $_ENV['APP_URL'] ?? 'https://web-upload-tugas.vercel.app',
+    'APP_MAINTENANCE_DRIVER'=> 'file',
+    'APP_MAINTENANCE_STORE' => 'database',
     'CACHE_STORE'           => 'file',
     'QUEUE_CONNECTION'      => 'sync',
     'BROADCAST_CONNECTION'  => 'log',
@@ -131,7 +133,8 @@ $defaults = [
 ];
 
 foreach ($defaults as $key => $value) {
-    if (empty($_ENV[$key]) && empty(getenv($key))) {
+    $curr = getenv($key);
+    if ($curr === false || trim((string)$curr) === '' || empty($_ENV[$key])) {
         putenv("{$key}={$value}");
         $_ENV[$key] = $value;
         $_SERVER[$key] = $value;
