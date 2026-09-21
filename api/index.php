@@ -1,16 +1,18 @@
 <?php
 
-// Force error display so blank white screen never happens on Vercel
+/**
+ * Vercel Serverless PHP Entry Point for Laravel
+ * 
+ * This file bootstraps Laravel in a serverless environment where
+ * the filesystem is read-only except for /tmp.
+ */
+
+// Show errors instead of blank white page
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
-// Remove stale local cached service/package files that reference dev-only packages
-@unlink(__DIR__ . '/../bootstrap/cache/services.php');
-@unlink(__DIR__ . '/../bootstrap/cache/packages.php');
-@unlink(__DIR__ . '/../bootstrap/cache/config.php');
-
-// Fix Vercel Serverless SCRIPT_NAME & REQUEST_URI routing
+// ─── Fix Vercel SCRIPT_NAME / REQUEST_URI ───
 $_SERVER['SCRIPT_NAME'] = '/index.php';
 $_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/../public/index.php';
 
@@ -18,16 +20,14 @@ if (isset($_SERVER['REQUEST_URI'])) {
     $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     if ($uri === '/api/index.php' || $uri === '/api' || $uri === '/api/' || empty($uri)) {
         $_SERVER['REQUEST_URI'] = '/';
-    } else if (str_starts_with($uri, '/api/index.php/')) {
+    } elseif (str_starts_with($uri, '/api/index.php/')) {
         $_SERVER['REQUEST_URI'] = substr($uri, 14);
     }
 }
 
-// Prepare writable storage directory in /tmp for Vercel Serverless environment
+// ─── Prepare writable /tmp directories ───
 $storagePath = '/tmp/storage';
-$viewCompiledPath = $storagePath . '/framework/views';
-$databaseTmpPath = '/tmp/database.sqlite';
-$sqliteOriginal = __DIR__ . '/../database/database.sqlite';
+$bootstrapCachePath = '/tmp/bootstrap-cache';
 
 $directories = [
     $storagePath . '/framework/views',
@@ -35,6 +35,7 @@ $directories = [
     $storagePath . '/framework/cache/data',
     $storagePath . '/logs',
     $storagePath . '/app/public',
+    $bootstrapCachePath,
 ];
 
 foreach ($directories as $dir) {
@@ -43,26 +44,49 @@ foreach ($directories as $dir) {
     }
 }
 
-// Copy SQLite database to writable /tmp directory if file exists
+// ─── Copy SQLite database to writable /tmp ───
+$databaseTmpPath = '/tmp/database.sqlite';
+$sqliteOriginal = __DIR__ . '/../database/database.sqlite';
+
 if (!file_exists($databaseTmpPath) && file_exists($sqliteOriginal)) {
     copy($sqliteOriginal, $databaseTmpPath);
 }
 
-// Set storage & view compile paths
+// ─── Set environment variables for Laravel ───
+
+// Storage path → /tmp/storage
 putenv("APP_STORAGE={$storagePath}");
 $_ENV['APP_STORAGE'] = $storagePath;
 $_SERVER['APP_STORAGE'] = $storagePath;
 
+// View compiled path → /tmp/storage/framework/views
+$viewCompiledPath = $storagePath . '/framework/views';
 putenv("VIEW_COMPILED_PATH={$viewCompiledPath}");
 $_ENV['VIEW_COMPILED_PATH'] = $viewCompiledPath;
 $_SERVER['VIEW_COMPILED_PATH'] = $viewCompiledPath;
 
-// Force APP_DEBUG=true for troubleshooting
+// Bootstrap cache paths → /tmp/bootstrap-cache
+putenv("APP_CONFIG_CACHE={$bootstrapCachePath}/config.php");
+$_ENV['APP_CONFIG_CACHE'] = "{$bootstrapCachePath}/config.php";
+
+putenv("APP_SERVICES_CACHE={$bootstrapCachePath}/services.php");
+$_ENV['APP_SERVICES_CACHE'] = "{$bootstrapCachePath}/services.php";
+
+putenv("APP_PACKAGES_CACHE={$bootstrapCachePath}/packages.php");
+$_ENV['APP_PACKAGES_CACHE'] = "{$bootstrapCachePath}/packages.php";
+
+putenv("APP_ROUTES_CACHE={$bootstrapCachePath}/routes-v7.php");
+$_ENV['APP_ROUTES_CACHE'] = "{$bootstrapCachePath}/routes-v7.php";
+
+putenv("APP_EVENTS_CACHE={$bootstrapCachePath}/events.php");
+$_ENV['APP_EVENTS_CACHE'] = "{$bootstrapCachePath}/events.php";
+
+// Debug on for troubleshooting
 putenv("APP_DEBUG=true");
 $_ENV['APP_DEBUG'] = 'true';
 $_SERVER['APP_DEBUG'] = 'true';
 
-// Fallback APP_KEY if missing in environment variables
+// Fallback APP_KEY
 $currentAppKey = $_ENV['APP_KEY'] ?? getenv('APP_KEY');
 if (empty($currentAppKey)) {
     $defaultKey = 'base64:n+5Zn+lWscc86aiTyMSeDHKzG6dEebWrSpIx5Z3iXfo=';
@@ -71,7 +95,7 @@ if (empty($currentAppKey)) {
     $_SERVER['APP_KEY'] = $defaultKey;
 }
 
-// Force SQLite connection fallback if DB_HOST is invalid or infinityfree
+// Force SQLite if no proper DB configured
 $dbHost = $_ENV['DB_HOST'] ?? getenv('DB_HOST');
 if (empty($_ENV['DB_CONNECTION']) || $_ENV['DB_CONNECTION'] === 'sqlite' || str_contains((string)$dbHost, 'infinityfree')) {
     putenv("DB_CONNECTION=sqlite");
@@ -83,5 +107,10 @@ if (empty($_ENV['DB_CONNECTION']) || $_ENV['DB_CONNECTION'] === 'sqlite' || str_
     $_SERVER['DB_DATABASE'] = $databaseTmpPath;
 }
 
-// Load normal Laravel entrypoint
+// Session driver = file (stored in /tmp)
+putenv("SESSION_DRIVER=file");
+$_ENV['SESSION_DRIVER'] = 'file';
+$_SERVER['SESSION_DRIVER'] = 'file';
+
+// ─── Load Laravel ───
 require __DIR__ . '/../public/index.php';

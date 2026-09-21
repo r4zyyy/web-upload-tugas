@@ -1,2 +1,6 @@
-*
+config.php
+services.php
+packages.php
+routes-v7.php
+events.php
 !.gitignore
