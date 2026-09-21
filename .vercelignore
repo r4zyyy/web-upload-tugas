@@ -1,0 +1,8 @@
+.env
+.git
+.gitignore
+tests/
+Dockerfile
+docker-entrypoint.sh
+database_for_infinityfree.sql
+README.md
