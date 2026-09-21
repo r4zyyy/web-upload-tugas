@@ -5,6 +5,19 @@ ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
 error_reporting(E_ALL);
 
+// Fix Vercel Serverless SCRIPT_NAME & REQUEST_URI routing
+$_SERVER['SCRIPT_NAME'] = '/index.php';
+$_SERVER['SCRIPT_FILENAME'] = __DIR__ . '/../public/index.php';
+
+if (isset($_SERVER['REQUEST_URI'])) {
+    $uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if ($uri === '/api/index.php' || $uri === '/api' || $uri === '/api/' || empty($uri)) {
+        $_SERVER['REQUEST_URI'] = '/';
+    } else if (str_starts_with($uri, '/api/index.php/')) {
+        $_SERVER['REQUEST_URI'] = substr($uri, 14);
+    }
+}
+
 // Prepare writable storage directory in /tmp for Vercel Serverless environment
 $storagePath = '/tmp/storage';
 $viewCompiledPath = $storagePath . '/framework/views';
