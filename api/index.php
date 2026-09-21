@@ -1,7 +1,9 @@
 <?php
 
-// Forward Vercel requests to normal index.php after setting up ephemeral storage path
+// Prepare writable storage directory in /tmp for Vercel Serverless environment
 $storagePath = '/tmp/storage';
+$viewCompiledPath = $storagePath . '/framework/views';
+
 $directories = [
     $storagePath . '/framework/views',
     $storagePath . '/framework/sessions',
@@ -16,8 +18,14 @@ foreach ($directories as $dir) {
     }
 }
 
+// Set storage & view compile paths
 putenv("APP_STORAGE={$storagePath}");
 $_ENV['APP_STORAGE'] = $storagePath;
 $_SERVER['APP_STORAGE'] = $storagePath;
 
+putenv("VIEW_COMPILED_PATH={$viewCompiledPath}");
+$_ENV['VIEW_COMPILED_PATH'] = $viewCompiledPath;
+$_SERVER['VIEW_COMPILED_PATH'] = $viewCompiledPath;
+
+// Load normal Laravel entrypoint
 require __DIR__ . '/../public/index.php';
