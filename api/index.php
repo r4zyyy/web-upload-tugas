@@ -1,14 +1,5 @@
 <?php
 
-// Diagnostic check - visit ?test=1 on your Vercel URL to confirm PHP is executing
-if (isset($_GET['test'])) {
-    header('Content-Type: text/plain');
-    echo "VERCEL PHP IS WORKING!\n";
-    echo "PHP Version: " . PHP_VERSION . "\n";
-    echo "Storage Writable: " . (is_writable('/tmp') ? 'YES' : 'NO') . "\n";
-    exit;
-}
-
 // Force error display so blank white screen never happens on Vercel
 ini_set('display_errors', '1');
 ini_set('display_startup_errors', '1');
